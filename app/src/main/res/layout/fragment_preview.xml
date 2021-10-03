@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragment.PreviewFragment">
+
+    <com.example.excam001.view.AutoFitTextureView
+        android:id="@+id/original_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <ImageView
+        android:id="@+id/processed_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="10dp"
+        android:numColumns="3"
+        tools:ignore="UseSwitchCompatOrMaterialXml">
+
+        <Switch
+            android:id="@+id/process_switch"
+            android:layout_width="140dp"
+            android:layout_height="match_parent"
+            android:text="@string/image_switch" />
+
+        <Button
+            android:id="@+id/capture"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:insetLeft="10dp"
+            android:insetRight="10dp"
+            android:text="@string/capture_button" />
+
+    </GridLayout>
+
+</FrameLayout>
