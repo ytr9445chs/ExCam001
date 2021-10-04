@@ -17,6 +17,7 @@ import android.view.Surface
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityCompat.requestPermissions
+import java.nio.ByteBuffer
 import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
@@ -37,7 +38,7 @@ class MyCameraManager(activity: Activity?) :
     private var mJpegSizes: ArrayList<Size>? = null
     private var mYuvSizes: ArrayList<Size>? = null
     private var mYuvReader: ImageReader? = null
-    private var mYuvMap: TreeMap<Long, Image>? = null
+    private var mYuvMap: TreeMap<Long, YuvData>? = null
     private var mCameraDevice: CameraDevice? = null
     private var mCaptureSession: CameraCaptureSession? = null
     private var mPreviewRequestBuilder: CaptureRequest.Builder? = null
@@ -218,7 +219,7 @@ class MyCameraManager(activity: Activity?) :
         }
 
         // setup ImageReader for receiving images.
-        mYuvMap = TreeMap<Long, Image>()
+        mYuvMap = TreeMap<Long, YuvData>()
         mYuvSizes?.let {
             if (0 < it.size) {
                 val size = it[0]
@@ -247,6 +248,7 @@ class MyCameraManager(activity: Activity?) :
         val surface = Surface(texture)
         val builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
         builder.addTarget(surface)
+        builder.addTarget(yuvSurface)
         mPreviewRequestBuilder = builder
 
         cameraDevice.createCaptureSession(
@@ -257,7 +259,9 @@ class MyCameraManager(activity: Activity?) :
     fun close() {
         try {
             mSemaphore.acquire()
+            mCaptureSession?.close()
             mYuvReader?.close()
+            mCaptureSession = null
             mYuvReader = null
             mYuvMap = null
         } catch (e: InterruptedException) {
@@ -298,19 +302,29 @@ class MyCameraManager(activity: Activity?) :
         synchronized(mSynchronize) {
             val yuvReader = mYuvReader ?: return@synchronized
             val yuvMap = mYuvMap ?: return@synchronized
-            val image = it.acquireLatestImage()
+            val image = yuvReader.acquireNextImage()
+            val bytes = image.width * image.height * 3 / 2
+            val buffer = ByteArray(bytes)
+            val yuvData = YuvData()
+            image.planes[0].buffer.get(buffer, 0, image.width * image.height)
+            image.planes[1].buffer
+            image.planes[2].buffer
+
+            yuvData.setYuv(buffer)
+            yuvData.width = image.width
+            yuvData.height = image.height
+            yuvData.timestamp = image.timestamp
+
             while (Defines.YUV_QUEUE_SIZE <= yuvMap.size) {
                 val key = yuvMap.firstKey()
                 key.let {
                     Log.d(TAG, String.format("drop frame %d", it))
                     yuvMap.remove(it)
                 }
+            }
+            yuvMap[image.timestamp] = yuvData
 
-            }
-            mYuvReader?.let {
-                val image = it.acquireLatestImage()
-                mYuvMap?.plus(Pair(image.timestamp, image))
-            }
+            image.close()
         }
     }
 

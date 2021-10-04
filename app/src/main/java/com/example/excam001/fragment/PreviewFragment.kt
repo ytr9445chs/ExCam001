@@ -1,9 +1,6 @@
 package com.example.excam001.fragment
 
-import android.graphics.Matrix
-import android.graphics.Point
-import android.graphics.RectF
-import android.graphics.SurfaceTexture
+import android.graphics.*
 import android.os.Bundle
 import android.util.Size
 import android.view.*
@@ -47,11 +44,11 @@ class PreviewFragment : Fragment(), View.OnClickListener, CompoundButton.OnCheck
         val previewSize: Size = cameraManager.chooseOptimalSize(
             rotatedWidth, rotatedHeight, maxWidth, maxHeight, size)
         if (swappedDimensions) {
-            mOriginalImageView?.setAspectRatio(
+            view.setAspectRatio(
                 previewSize.height, previewSize.width
             )
         } else {
-            mOriginalImageView?.setAspectRatio(
+            view.setAspectRatio(
                 previewSize.width, previewSize.height
             )
         }
@@ -64,18 +61,22 @@ class PreviewFragment : Fragment(), View.OnClickListener, CompoundButton.OnCheck
         val matrix = Matrix()
         val viewRect = RectF(0f, 0f, width.toFloat(), height.toFloat())
         val bufferRect = RectF(0f, 0f, previewSize.height.toFloat(), previewSize.width.toFloat())
-        val centerX = viewRect.centerX()
-        val centerY = viewRect.centerY()
+        val center = PointF(viewRect.centerX(), viewRect.centerY())
 
+        bufferRect.offset(center.x - bufferRect.centerX(), center.y - bufferRect.centerY())
+        matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL)
         if (Surface.ROTATION_90 == deviceRotation || Surface.ROTATION_270 == deviceRotation) {
-            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY())
-            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL)
-            val scale = kotlin.math.max(
+            val scale = kotlin.math.min(
                 height.toFloat() / previewSize.height,
                 width.toFloat() / previewSize.width)
-            matrix.postScale(scale, scale, centerX, centerY)
+            matrix.postScale(scale, scale, center.x, center.y)
+        } else {
+            val scale = kotlin.math.min(
+                width.toFloat() / previewSize.height,
+                height.toFloat() / previewSize.width)
+            matrix.postScale(scale, scale, center.x, center.y)
         }
-        matrix.postRotate(rotation.toFloat(), centerX, centerY)
+        matrix.postRotate(rotation.toFloat(), center.x, center.y)
         mOriginalImageView?.setTransform(matrix)
         cameraManager.setPreview(surfaceTexture, size)
     }

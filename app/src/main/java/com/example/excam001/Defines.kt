@@ -42,6 +42,6 @@ class Defines {
          */
         const val MAX_PREVIEW_HEIGHT = 1080
 
-        const val YUV_QUEUE_SIZE = 20
+        const val YUV_QUEUE_SIZE = 8
     }
 }
